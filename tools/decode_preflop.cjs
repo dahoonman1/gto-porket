@@ -1,0 +1,20 @@
+const fs=require('node:fs'),z=require('node:zlib'),readline=require('node:readline'),path=require('node:path'),crypto=require('node:crypto');
+(async()=>{
+const [input,mappingFile,snapshotFile,out]=process.argv.slice(2);fs.mkdirSync(out,{recursive:true});
+const candidates=JSON.parse(fs.readFileSync(mappingFile));if(candidates.length!==1)throw Error('Ambiguous mapping');const mapping=candidates[0].bucket_to_hand;
+const snapshot=JSON.parse(fs.readFileSync(snapshotFile));const manifest={schema:'gto_pocket_preflop_v1',mapping:{status:'inferred_not_source_verified',...candidates[0]},positions:{status:'unverified',labels:null},solve:{players:8,stack_bb:20,bb_ante_bb:1,status:'stopped',iterations:1034384,requested_iterations:5000000,accuracy_profile:'multiway_experimental'},nodes:[]};
+manifest.excluded=[];let count=0,maxSum=0,maxRoot=0;const ids=new Map();
+for await(const line of readline.createInterface({input:fs.createReadStream(input),crlfDelay:Infinity})){
+ const n=JSON.parse(line);try{const actions=JSON.parse(n.legal_actions_json),hands=new Map();
+ for(const b of n.blocks){const p=Buffer.from(b.payload,'base64'),magic=p.toString('ascii',0,4),v2=magic==='NCB2';if(!v2&&magic!=='NCB1')throw Error('Container');const header=v2?25:21;if(p[v2?16:12]!==2||p.readUInt32LE(v2?12:8)!==p.length-header)throw Error('Header');const raw=z.zstdDecompressSync(p.subarray(header));if(raw.length!==p.readUInt32LE(v2?8:4))throw Error('Length');let offset=0;
+ for(let i=0;i<b.row_count;i++){const width=v2?p.readUInt32LE(4):53+((raw[offset+52]&2)?12:8)*actions.length;if(![53+8*actions.length,53+12*actions.length].includes(width))throw Error('Shape');let r;if(v2){if(raw.length!==width*b.row_count)throw Error('Shape');r=Buffer.alloc(width);for(let j=0;j<width;j++)r[j]=raw[j*b.row_count+i];}else{r=raw.subarray(offset,offset+width);offset+=width;if(r.length!==width)throw Error('Truncated');}if(r[51]!==actions.length)throw Error('Actions');const bucket=Number(r.readBigInt64LE(1));if(!mapping[bucket])throw Error('Bucket');const strategy=actions.map((_,a)=>r.readFloatLE(53+4*a)),ev=width===53+12*actions.length?actions.map((_,a)=>r.readFloatLE(53+8*actions.length+4*a)):null;if(strategy.some(p=>!Number.isFinite(p)||p<0||p>1)||(ev&&ev.some(v=>!Number.isFinite(v))))throw Error('Value');const err=Math.abs(strategy.reduce((s,p)=>s+p,0)-1);maxSum=Math.max(maxSum,err);if(err>1e-6)throw Error('Sum');const h={bucket,hand:mapping[bucket],strategy,action_ev_bb:ev};if(hands.has(bucket))throw Error('Duplicate bucket');hands.set(bucket,h);if(n.root_node){const ref=snapshot.find(r=>r.bucket===bucket);actions.forEach((a,i)=>{maxRoot=Math.max(maxRoot,Math.abs(strategy[i]-ref['action_'+a]),ev?Math.abs(ev[i]-ref['action_ev_'+a]):Infinity);});}}
+ if(!v2&&offset!==raw.length)throw Error('Trailing bytes');}
+ if(!hands.size)throw Error('Empty node');
+ const node={node_id:n.node_id,player:n.player,history:n.history,parent_history:n.parent_history,parent_action:n.parent_action,pot_bb:n.pot_cents/100,to_call_bb:n.to_call_cents/100,coverage: {present:hands.size,expected:169},actions,hands:[...hands.values()].sort((a,b)=>a.bucket-b.bucket)};
+ const serialized=JSON.stringify(node),hash=crypto.createHash('sha256').update(serialized).digest('hex');if(ids.has(n.node_id)){if(ids.get(n.node_id)!==hash)throw Error('Conflicting node ID');continue;}ids.set(n.node_id,hash);
+ fs.writeFileSync(path.join(out,n.node_id+'.json'),serialized);const {hands:_,...summary}=node;manifest.nodes.push({...summary,sha256:hash});count+=hands.size;}catch(e){manifest.excluded.push({node_id:n.node_id,history:n.history,reason:e.message});}
+}
+if(maxRoot>1e-5)throw Error('Root mismatch');manifest.validation={nodes:manifest.nodes.length,rows:count,max_probability_sum_error:maxSum,max_root_snapshot_error:maxRoot,coverage:'directory_reachable_preflop_only',gto_fidelity_confirmed:false};fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify(manifest));console.log(manifest.validation);
+})().catch(e=>{console.error(e);process.exitCode=1});
+
+

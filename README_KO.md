@@ -39,3 +39,40 @@
 - Source repository: https://github.com/jensbaagaard/poker-practice
 - Data README: https://raw.githubusercontent.com/jensbaagaard/poker-practice/main/data/openSourcePokerData/README.md
 - Poker Practice repository states that the source range data is MIT-licensed and free to use. Keep source attribution when redistributing.
+# GTO Pocket 로컬 솔버 연동 결과
+
+## 실제 결과
+- 저장소 `dahoonman1/gto-porket`의 main을 `outputs/gto-porket`에 복제하고 로컬 수정했다. 원격 push·배포는 하지 않았다.
+- 프리플랍 디렉터리 5,875개 항목에서 고유 노드 5,875개를 추출했다. 누락 라우팅·충돌·미해독 노드는 0개다.
+- 983,119개 저장 핸드 행. 200개 노드는 169핸드 미만이며 총 9,756개 핸드 행이 미저장이다. 액션 EV가 없는 행은 1,205개다. 누락을 보간하거나 폴드로 치환하지 않았다.
+- NCB2 전치 고정 길이 및 NCB1 비전치 가변 길이 행을 해독했다. NCB1의 EV 유무 플래그는 행 오프셋 52의 bit 1로 추론했으며 모든 길이·경계·확률 검사와 일치했다. 구현 소스 확인은 아니다.
+- 확률합 최대 오차 4.470348358154297e-8. 루트 확률·액션 EV의 스냅샷 대비 최대 절대 오차 2.644401781992656e-7.
+
+## 검증 범위와 한계
+- 원본 SQLite는 mode=ro 및 query_only=ON으로 열었다. 프리플랍 디렉터리와 history/street/player 인덱스, node_id 블록 인덱스만 조회했다. 전체 포스트플랍 스캔은 하지 않았다.
+- 조사 전후 원본 SQLite 관련 파일의 크기·수정 시각 동일. 전체 원본 해시·DB integrity_check는 수행하지 않았다.
+- 전체성은 디렉터리에서 접근 가능한 프리플랍 노드 기준이다. 디렉터리에 등록되지 않은 고아 노드의 부재는 확인하지 않았다.
+- 169핸드 매핑은 이전 작업의 캐시와 1,326조합 구조 일치 추론을 사용했다. 이번에 확인한 nlhe_solver_artifacts/runtime 아래에는 검증 가능한 솔버 구현 소스가 없었다. 카드 번호·조합 인덱스 정의를 구현과 직접 대조하지 못했다.
+- 루트 player=3, fold 후 player=4 등의 좌석 이동은 데이터에서 확인했지만 BTN/SB/BB 이름은 확정하지 않았다. request.json의 button은 null이다. UI는 원본 좌석 번호를 사용한다.
+- 이 solve는 8인 20BB, BB ante 1BB, multiway_experimental, bucket_only이며 5,000,000회 요청 중 1,034,384회에서 중단되었다. 복원 성공·정규화된 확률은 수렴이나 GTO 충실도를 보증하지 않는다.
+- 컨테이너 내부 미확인 체크섬 필드는 검증하지 않았다. 출력 노드별 SHA-256은 생성·재검증하며 UI도 불러올 때 확인한다.
+
+## 변경 파일
+- index.html: 로컬 솔버 화면으로 이동 링크 추가.
+- solver.html, solver.js: 13×13 핸드 표시, 실제 액션별 빈도와 존재하는 EV, 다인 이력·이전 상황 이동·다음 액션 조회·직접 노드 선택, 미저장 핸드 표시, 전체 오프라인 저장.
+- sw.js: 셸 버전과 새 화면·목록 캐시 추가. 전체 노드 저장은 별도 버튼으로 수행하며 브라우저 용량 제한 시 오류를 표시한다.
+- data/manifest.json: import 계약 gto_pocket_preflop_v1, 추론·검증 상태, 설정, 노드 목록·해시.
+- data/<node_id>.json: 고유 노드 5,875개. ID는 문자열, 핸드는 라벨로 연결, 전략·EV 배열은 actions 순서와 일치. 없는 EV는 null.
+- data/export-report.json: 원본 보존·라우팅 조회 결과.
+- tools/export_preflop.py, decode_preflop.cjs, validate.cjs: 스트리밍 추출·해독·전체 출력 검증.
+- tools/bucket_mapping_candidates.json, root_strategy_buckets.json: 이전 작업의 매핑 후보 및 루트 비교 기준.
+- README_KO.md: 실행·재생성·검증 한계 안내 추가.
+
+## 실행과 검사
+Python 3으로 저장소 폴더에서 `python -m http.server 8765`를 실행한 뒤 http://localhost:8765/solver.html 을 연다. 일반 파일 더블클릭 방식은 지원하지 않는다.
+Node 24 이상 필요:
+1. `python tools/export_preflop.py SOURCE OUTSIDE_SOURCE/preflop.jsonl`
+2. `node tools/decode_preflop.cjs OUTSIDE_SOURCE/preflop.jsonl tools/bucket_mapping_candidates.json tools/root_strategy_buckets.json data`
+3. `node tools/validate.cjs data`
+
+전체 5,875개 출력 파일을 다시 읽어 해시·고유 ID·핸드 커버리지·확률합·매핑·행 수를 검사했다. Edge 브라우저 자동 검사에서 169셀, AKs 상세, fold 후 좌석 4 이동, 셸 및 방문한 루트의 오프라인 재로드를 확인했고 페이지 오류는 없었다. 전체 데이터 저장 버튼의 5,875개 다운로드와 실제 휴대폰 설치는 아직 실행 검증하지 않았다.
