@@ -188,13 +188,16 @@ function conditional(freqs, previous) {
 function getActionWeights() {
   if (!state.data) return null;
   const keys = keysForCurrentSpot();
+  if (state.stack === 40 && state.scenario === 'vs-5bet') return {unavailable:true, keys, reason:'이 공개 40BB 프로필은 4벳이 올인이므로 별도의 5벳 대응 단계가 없습니다. AA 폴드 전략을 의미하지 않습니다.'};
   const exists = hasObjectKey(state.data, keys.raise) || hasObjectKey(state.data, keys.call);
   if (!exists) return { unavailable: true, keys };
   const prev = keys.previous ? (state.data[keys.previous] || null) : null;
+  if (keys.previous && !prev) return {unavailable:true,keys,reason:'이전 액션의 도달 빈도가 없어 조건부 전략을 확인할 수 없습니다.'};
   const raise = conditional(keys.raise ? state.data[keys.raise] : null, prev);
   const call = conditional(keys.call ? state.data[keys.call] : null, prev);
   const weights = new Map();
   for (const hand of allHands()) {
+    if (prev && !(Number(prev[hand.label]) > 0)) { weights.set(hand.label,{unavailable:true,combos:hand.combos}); continue; }
     const r = clamp(Number(raise[hand.label] || 0));
     const c = Math.min(clamp(Number(call[hand.label] || 0)), 1 - r);
     // Poker Practice MTT JSON stores a single raise frequency, not separate sizes.
@@ -222,8 +225,9 @@ function allHands() {
 function fmtPct(v) { return `${Math.round(v * 100)}%`; }
 function comboShare(weights, action) {
   let total = 0;
-  for (const [hand, w] of weights.entries()) total += w[action] * w.combos;
-  return total / COMBO_COUNT;
+  let combos=0;
+  for (const w of weights.values()) { if(w.unavailable) continue;total+=w[action]*w.combos;combos+=w.combos; }
+  return combos ? total / combos : 0;
 }
 function cellGradient(w) {
   const allin = (w.allin * 100).toFixed(2);
@@ -240,7 +244,7 @@ function renderGrid(result) {
     els.rangeGrid.classList.add('hidden');
     els.actionTotals.classList.add('hidden');
     els.chartMessage.classList.remove('hidden');
-    els.chartMessage.textContent = '이 스택/포지션 조합에는 원본 데이터의 해당 차트가 없습니다. 더 깊은 스택에서 해당 노드가 생략된 경우가 있습니다. 다른 포지션이나 스택을 선택해 주세요.';
+    els.chartMessage.textContent = result?.reason || '이 스택/포지션 조합에는 원본 데이터의 해당 차트가 없습니다. 더 깊은 스택에서 해당 노드가 생략된 경우가 있습니다. 다른 포지션이나 스택을 선택해 주세요.';
     els.availabilityBadge.textContent = '차트 없음';
     els.handDetail.innerHTML = '<div class="detail-placeholder">현재 선택한 상황에는 표시할 수 있는 GTO 노드가 없습니다.</div>';
     return;
@@ -255,8 +259,8 @@ function renderGrid(result) {
     button.type = 'button';
     button.className = `hand-cell${hand.kind === 'pair' ? ' pair' : ''}${state.selectedHand === hand.label ? ' selected' : ''}`;
     button.textContent = hand.label;
-    button.style.background = cellGradient(w);
-    button.title = `${hand.label} · 올인 ${fmtPct(w.allin)} / 베팅·레이즈 ${fmtPct(w.raise)} / 콜 ${fmtPct(w.call)} / 폴드 ${fmtPct(w.fold)}`;
+    button.style.background = w.unavailable ? 'var(--gray)' : cellGradient(w);
+    button.title = w.unavailable ? `${hand.label} · 이전 액션 도달 빈도 0 · 폴드 전략 아님` : `${hand.label} · 올인 ${fmtPct(w.allin)} / 베팅·레이즈 ${fmtPct(w.raise)} / 콜 ${fmtPct(w.call)} / 폴드 ${fmtPct(w.fold)}`;
     button.setAttribute('aria-label', button.title);
     button.addEventListener('click', () => { state.selectedHand = hand.label; renderGrid(result); renderHandDetail(result.weights); });
     els.rangeGrid.appendChild(button);
@@ -271,13 +275,14 @@ function renderGrid(result) {
     const card = document.createElement('div');
     card.className = `total-card ${item.key}`;
     const value = comboShare(result.weights, item.key);
-    card.innerHTML = `<span>${item.label} · 전체 콤보 기준</span><strong>${fmtPct(value)}</strong>`;
+    card.innerHTML = `<span>${item.label} · 표시 핸드 콤보 기준</span><strong>${fmtPct(value)}</strong>`;
     els.actionTotals.appendChild(card);
   }
   renderHandDetail(result.weights);
 }
 function renderHandDetail(weights) {
   const w = weights?.get(state.selectedHand);
+  if (w?.unavailable) { els.handDetail.textContent = `${state.selectedHand} · 이전 액션의 도달 빈도가 0이라 이 단계의 전략을 표시하지 않습니다. 폴드 100%를 의미하지 않습니다.`;return; }
   if (!w) { els.handDetail.innerHTML = '<div class="detail-placeholder">핸드를 선택하세요.</div>'; return; }
   els.handDetail.innerHTML = `
     <div class="detail-title-row"><div class="detail-hand">${state.selectedHand}</div><div class="detail-combos">${w.combos}개 조합 · 전체 1,326 콤보</div></div>
