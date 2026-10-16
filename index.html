@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101b2b">
+  <meta name="description" content="8인 MTT 프리플랍 GTO 레인지 조회 도구. 데이터 저장 후 오프라인 사용 가능.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>GTO Pocket · 프리플랍 레인지</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">♠</div>
+      <div class="brand-copy">
+        <h1>GTO Pocket</h1>
+        <p>8인 MTT · 프리플랍 레인지</p>
+      </div>
+      <div id="connectionBadge" class="status-pill" role="status">확인 중</div>
+    </header>
+
+    <main>
+      <section class="panel intro-panel">
+        <div class="eyebrow">SOLVER FREQUENCIES</div>
+        <h2>상황을 고르고, 바로 확인하세요.</h2>
+        <p>원본 GTO 혼합 빈도를 사용합니다. 처음 한 번 데이터 저장을 마치면 연결 없이도 조회할 수 있습니다.</p>
+        <div class="source-row">
+          <span class="source-dot"></span>
+          <span id="dataStatus">레인지 데이터가 아직 저장되지 않았습니다.</span>
+        </div>
+        <button id="syncButton" class="primary-button" type="button">모든 스택 데이터 저장</button>
+        <div id="syncProgress" class="sync-progress" aria-live="polite"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <h2>유효 스택</h2>
+          <span class="subtle">BB</span>
+        </div>
+        <div id="stackOptions" class="segmented stack-options" role="group" aria-label="스택 깊이">
+          <button type="button" data-stack="100" class="active">100</button>
+          <button type="button" data-stack="40">40</button>
+          <button type="button" data-stack="20">20</button>
+          <button type="button" data-stack="10">10</button>
+          <button type="button" data-stack="5">5</button>
+        </div>
+        <div id="stackHint" class="hint-box"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <h2>상황</h2>
+          <span class="subtle">GTO · MTT</span>
+        </div>
+        <div id="scenarioOptions" class="scenario-list" role="group" aria-label="프리플랍 상황">
+          <button type="button" data-scenario="open" class="scenario-button active"><span>01</span><strong>오픈</strong><small>내 앞에 레이즈 없음</small></button>
+          <button type="button" data-scenario="vs-raise" class="scenario-button"><span>02</span><strong>오픈 대응</strong><small>콜 · 3벳 · 폴드</small></button>
+          <button type="button" data-scenario="vs-3bet" class="scenario-button"><span>03</span><strong>3벳 대응</strong><small>4벳 · 콜 · 폴드</small></button>
+          <button type="button" data-scenario="vs-4bet" class="scenario-button"><span>04</span><strong>4벳 대응</strong><small>5벳 · 콜 · 폴드</small></button>
+          <button type="button" data-scenario="vs-5bet" class="scenario-button"><span>05</span><strong>5벳 대응</strong><small>콜 · 폴드</small></button>
+          <button type="button" data-scenario="multiway" class="scenario-button"><span>06</span><strong>앞선 콜 있음</strong><small>오픈 → 콜 → 내 차례</small></button>
+        </div>
+        <div id="standardControls">
+        <div class="select-grid">
+          <label class="field">
+            <span>내 포지션</span>
+            <select id="heroSelect"></select>
+          </label>
+          <label id="villainField" class="field hidden">
+            <span id="villainLabel">상대 포지션</span>
+            <select id="villainSelect"></select>
+          </label>
+        </div>
+        <div id="spotDescription" class="spot-description"></div>
+        </div>
+        <div id="multiwayControls" class="multiway-controls hidden">
+          <div class="select-grid">
+            <label class="field">
+              <span>처음 레이즈한 포지션</span>
+              <select id="multiwayOpener"></select>
+            </label>
+            <label class="field">
+              <span>내 포지션 (결정할 자리)</span>
+              <select id="multiwayHero"></select>
+            </label>
+          </div>
+          <div class="caller-picker">
+            <div class="caller-picker-heading">
+              <strong>내 차례 전에 콜한 플레이어</strong>
+              <span class="subtle">복수 선택 가능</span>
+            </div>
+            <div id="callerOptions" class="caller-options"></div>
+            <p class="field-help">목록에 없는 앞선 포지션은 폴드한 것으로 취급합니다. 내 포지션보다 뒤에 있는 SB·BB 등은 선택하지 않습니다.</p>
+          </div>
+          <div id="multiwaySequence" class="sequence-preview"></div>
+          <div class="multiway-warning">현재 연결된 Poker Practice 데이터에는 앞선 콜까지 포함한 멀티웨이 GTO 빈도가 없습니다. 이 화면에서는 상황만 설정할 수 있으며, 없는 정답을 추정해 보여주지 않습니다.</div>
+        </div>
+      </section>
+
+      <section class="panel range-panel">
+        <div class="range-header">
+          <div>
+            <div class="eyebrow">RANGE CHART</div>
+            <h2 id="chartTitle">BTN 오픈 레인지</h2>
+            <p id="chartSubtitle" class="subtle">100BB · GTO 혼합 전략</p>
+          </div>
+          <div id="availabilityBadge" class="mini-badge">로딩 중</div>
+        </div>
+        <div id="chartMessage" class="chart-message hidden" role="status"></div>
+        <div id="rangeGrid" class="range-grid" aria-label="169개 시작 핸드 레인지"></div>
+        <div class="legend">
+          <div><i class="swatch raise"></i><span>레이즈 / 3벳 / 4벳</span></div>
+          <div><i class="swatch call"></i><span>콜</span></div>
+          <div><i class="swatch fold"></i><span>폴드</span></div>
+        </div>
+        <div id="actionTotals" class="action-totals"></div>
+        <div id="handDetail" class="hand-detail">
+          <div class="detail-placeholder">아래 레인지 표에서 핸드를 누르면 액션별 빈도가 표시됩니다.</div>
+        </div>
+      </section>
+
+      <section class="panel notes-panel">
+        <h2>읽는 법</h2>
+        <p><b>색이 섞인 칸</b>은 혼합 전략입니다. 예를 들어 레이즈 60%·콜 40%라면 항상 한 액션만 해야 한다는 뜻이 아닙니다.</p>
+        <p><b>스택 깊이</b>는 원본 데이터에 있는 100·40·20·10·5BB만 표시합니다. 선택한 숫자는 해당 스택의 솔버 결과입니다.</p>
+        <p><b>앞선 콜 있음</b> 메뉴에서 UTG 오픈 → CO 콜 → BTN 차례처럼 액션 순서를 설정할 수 있습니다. 단, 현재 무료 데이터에는 해당 멀티웨이 노드가 없으므로 실제 GTO 빈도는 표시하지 않습니다.</p>
+        <p class="small-print">학습용 프리플랍 차트입니다. 포커 룸의 실시간 플레이 중 보조 도구 허용 여부를 확인하세요.</p>
+      </section>
+    </main>
+
+    <footer>
+      <p>Range data: <a href="https://github.com/jensbaagaard/poker-practice" target="_blank" rel="noreferrer">Poker Practice</a> · MIT License</p>
+      <p id="versionText">GTO Pocket · v0.2 · 로컬 저장 지원</p>
+    </footer>
+  </div>
+  <script src="./app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#101b2b"/>
+  <rect x="38" y="38" width="436" height="436" rx="92" fill="#173b37" stroke="#4ac59a" stroke-width="10"/>
+  <path d="M256 102c-42 58-116 92-116 170 0 45 32 76 73 76 20 0 39-10 51-27 12 17 31 27 51 27 41 0 73-31 73-76 0-78-74-112-132-170Z" fill="#dfffee"/>
+  <path d="M226 331h60l24 76H202l24-76Z" fill="#dfffee"/>
+  <text x="256" y="448" text-anchor="middle" font-family="Arial,sans-serif" font-size="46" font-weight="800" fill="#82e1b8">GTO</text>
+</svg>
