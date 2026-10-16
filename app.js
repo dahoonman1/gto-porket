@@ -41,15 +41,15 @@ const SCENARIOS = {
   }
 };
 
-const state = { stack: 100, scenario: 'open', hero: 'BTN', villain: 'BB', data: null, selectedHand: 'AKs', loading: false, multiwayOpener: 'UTG', multiwayHero: 'BTN', multiwayCallers: new Set(['CO']) };
+const state = { stack: 100, scenario: 'open', hero: 'BTN', villain: 'BB', data: null, selectedHand: 'AKs', loading: false, multiwayOpener: 'UTG', multiwayHero: 'BTN', multiwayCallers: new Set() };
 const els = {
   connectionBadge: document.getElementById('connectionBadge'), dataStatus: document.getElementById('dataStatus'),
   syncButton: document.getElementById('syncButton'), syncProgress: document.getElementById('syncProgress'),
   stackOptions: document.getElementById('stackOptions'), stackHint: document.getElementById('stackHint'),
-  scenarioOptions: document.getElementById('scenarioOptions'), heroSelect: document.getElementById('heroSelect'),
+  scenarioOptions: document.getElementById('scenarioOptions'), heroPositionOptions: document.getElementById('heroPositionOptions'),
   villainField: document.getElementById('villainField'), villainLabel: document.getElementById('villainLabel'), villainSelect: document.getElementById('villainSelect'),
   spotDescription: document.getElementById('spotDescription'), standardControls: document.getElementById('standardControls'), multiwayControls: document.getElementById('multiwayControls'),
-  multiwayOpener: document.getElementById('multiwayOpener'), multiwayHero: document.getElementById('multiwayHero'), callerOptions: document.getElementById('callerOptions'), multiwaySequence: document.getElementById('multiwaySequence'),
+  multiwayOpener: document.getElementById('multiwayOpener'), multiwayHeroOptions: document.getElementById('multiwayHeroOptions'), callerOptions: document.getElementById('callerOptions'), multiwaySequence: document.getElementById('multiwaySequence'),
   chartTitle: document.getElementById('chartTitle'), chartSubtitle: document.getElementById('chartSubtitle'),
   availabilityBadge: document.getElementById('availabilityBadge'), chartMessage: document.getElementById('chartMessage'), rangeGrid: document.getElementById('rangeGrid'),
   actionTotals: document.getElementById('actionTotals'), handDetail: document.getElementById('handDetail')
@@ -135,8 +135,7 @@ function updatePositionControls() {
   const heroes = validHeroes(state.scenario);
   if (!heroes.includes(state.hero)) state.hero = heroes[0] || 'BTN';
   const shape = SCENARIOS[state.scenario];
-  els.heroSelect.innerHTML = heroes.map((p) => `<option value="${p}">${positionLabel(p)}</option>`).join('');
-  els.heroSelect.value = state.hero;
+  renderPositionButtons(els.heroPositionOptions, heroes, state.hero);
   els.villainField.classList.toggle('hidden', !shape.needsVillain);
   if (shape.needsVillain) {
     const villains = validVillains(state.scenario, state.hero);
@@ -159,6 +158,12 @@ function setStackHint() {
   els.stackHint.textContent = text[state.stack];
   document.querySelectorAll('[data-stack]').forEach((btn) => btn.classList.toggle('active', Number(btn.dataset.stack) === state.stack));
 }
+function renderPositionButtons(container, options, selected) {
+  container.innerHTML = options.map((position) =>
+    `<button type="button" class="position-button${position === selected ? ' active' : ''}" data-position="${position}" aria-pressed="${position === selected ? 'true' : 'false'}">${positionLabel(position)}</button>`
+  ).join('');
+}
+
 function updateMultiwayControls() {
   const openerOptions = POSITIONS.filter((p) => p !== 'BB');
   els.multiwayOpener.innerHTML = openerOptions.map((p) => `<option value="${p}">${positionLabel(p)}</option>`).join('');
@@ -167,8 +172,7 @@ function updateMultiwayControls() {
   const openerIndex = POSITIONS.indexOf(state.multiwayOpener);
   const possibleHeroes = POSITIONS.slice(openerIndex + 1);
   if (!possibleHeroes.includes(state.multiwayHero)) state.multiwayHero = possibleHeroes[possibleHeroes.length - 1] || 'BB';
-  els.multiwayHero.innerHTML = possibleHeroes.map((p) => `<option value="${p}">${positionLabel(p)}</option>`).join('');
-  els.multiwayHero.value = state.multiwayHero;
+  renderPositionButtons(els.multiwayHeroOptions, possibleHeroes, state.multiwayHero);
 
   const heroIndex = POSITIONS.indexOf(state.multiwayHero);
   const possibleCallers = POSITIONS.slice(openerIndex + 1, heroIndex);
@@ -202,7 +206,7 @@ function renderMultiwayUnavailable() {
   } else if (callers.length === 0) {
     els.chartMessage.textContent = '내 차례 전에 콜한 플레이어를 한 명 이상 선택해 주세요. 콜이 없다면 일반적인 오픈 대응 메뉴를 사용하세요.';
   } else {
-    els.chartMessage.textContent = `${positionLabel(opener)} 레이즈 → ${callers.map(positionLabel).join(' 콜 → ')} 콜 → ${positionLabel(hero)} 차례. 현재 연결된 Poker Practice 공개 데이터에는 이 멀티웨이 액션 경로의 솔버 빈도가 없습니다. 헤즈업 차트를 대신 표시하면 잘못된 GTO 정답으로 오해할 수 있어 표시하지 않습니다.`;
+    els.chartMessage.textContent = `${positionLabel(opener)} 레이즈 → ${callers.map(positionLabel).join(' 콜 → ')} 콜 → ${positionLabel(hero)} 차례로 설정되었습니다. 현재 공개 데이터에는 앞선 콜까지 조건으로 포함한 이 멀티웨이 액션 경로의 GTO 빈도가 없어 차트는 표시하지 않습니다. 이 설정은 복기 시 액션 순서를 정리하기 위한 것입니다.`;
   }
   els.handDetail.innerHTML = '<div class="detail-placeholder">멀티웨이 GTO 데이터가 연결되면 여기에서 핸드별 레이즈·콜·폴드 빈도를 확인할 수 있습니다.</div>';
 }
@@ -240,7 +244,11 @@ function getActionWeights() {
   for (const hand of allHands()) {
     const r = clamp(Number(raise[hand.label] || 0));
     const c = Math.min(clamp(Number(call[hand.label] || 0)), 1 - r);
-    weights.set(hand.label, { raise: r, call: c, fold: Math.max(0, 1 - r - c), combos: hand.combos });
+    // Poker Practice MTT JSON stores a single raise frequency, not separate sizes.
+    // At 5BB, show the raise category as an all-in/push category; higher stacks stay as raise.
+    const allin = state.stack === 5 ? r : 0;
+    const regularRaise = state.stack === 5 ? 0 : r;
+    weights.set(hand.label, { allin, raise: regularRaise, call: c, fold: Math.max(0, 1 - r - c), combos: hand.combos });
   }
   return { weights, keys };
 }
@@ -265,9 +273,10 @@ function comboShare(weights, action) {
   return total / COMBO_COUNT;
 }
 function cellGradient(w) {
-  const r = (w.raise * 100).toFixed(2);
-  const c = ((w.raise + w.call) * 100).toFixed(2);
-  return `linear-gradient(90deg, #17694e 0 ${r}%, #235d91 ${r}% ${c}%, #2c394b ${c}% 100%)`;
+  const allin = (w.allin * 100).toFixed(2);
+  const raiseEnd = ((w.allin + w.raise) * 100).toFixed(2);
+  const callEnd = ((w.allin + w.raise + w.call) * 100).toFixed(2);
+  return `linear-gradient(90deg, #701820 0 ${allin}%, #e53e43 ${allin}% ${raiseEnd}%, #32a852 ${raiseEnd}% ${callEnd}%, #85ccf5 ${callEnd}% 100%)`;
 }
 function renderGrid(result) {
   els.rangeGrid.innerHTML = '';
@@ -286,20 +295,21 @@ function renderGrid(result) {
   els.chartMessage.classList.add('hidden');
   els.availabilityBadge.textContent = 'GTO 데이터';
   for (const hand of allHands()) {
-    const w = result.weights.get(hand.label) || { raise: 0, call: 0, fold: 1, combos: hand.combos };
+    const w = result.weights.get(hand.label) || { allin: 0, raise: 0, call: 0, fold: 1, combos: hand.combos };
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `hand-cell${hand.kind === 'pair' ? ' pair' : ''}${state.selectedHand === hand.label ? ' selected' : ''}`;
     button.textContent = hand.label;
     button.style.background = cellGradient(w);
-    button.title = `${hand.label} · 레이즈 ${fmtPct(w.raise)} / 콜 ${fmtPct(w.call)} / 폴드 ${fmtPct(w.fold)}`;
+    button.title = `${hand.label} · 올인 ${fmtPct(w.allin)} / 베팅·레이즈 ${fmtPct(w.raise)} / 콜 ${fmtPct(w.call)} / 폴드 ${fmtPct(w.fold)}`;
     button.setAttribute('aria-label', button.title);
     button.addEventListener('click', () => { state.selectedHand = hand.label; renderGrid(result); renderHandDetail(result.weights); });
     els.rangeGrid.appendChild(button);
   }
   const totals = [
+    { key: 'allin', label: '올인' },
     { key: 'raise', label: state.scenario === 'open' ? '오픈 / 레이즈' : '레이즈 계열' },
-    { key: 'call', label: state.scenario === 'open' ? '림프' : '콜' },
+    { key: 'call', label: state.scenario === 'open' ? '림프 / 콜' : '콜' },
     { key: 'fold', label: '폴드' }
   ];
   for (const item of totals) {
@@ -317,9 +327,10 @@ function renderHandDetail(weights) {
   els.handDetail.innerHTML = `
     <div class="detail-title-row"><div class="detail-hand">${state.selectedHand}</div><div class="detail-combos">${w.combos}개 조합 · 전체 1,326 콤보</div></div>
     <div class="detail-actions">
-      <div class="detail-action raise">레이즈 계열<b>${fmtPct(w.raise)}</b></div>
+      <div class="detail-action allin">올인<b>${fmtPct(w.allin)}</b></div>
+      <div class="detail-action raise">베팅 / 레이즈<b>${fmtPct(w.raise)}</b></div>
       <div class="detail-action call">콜<b>${fmtPct(w.call)}</b></div>
-      <div class="detail-action">폴드<b>${fmtPct(w.fold)}</b></div>
+      <div class="detail-action fold">폴드<b>${fmtPct(w.fold)}</b></div>
     </div>`;
 }
 function updateChartHeader() {
@@ -332,7 +343,7 @@ function updateChartHeader() {
   els.chartTitle.textContent = state.scenario === 'open'
     ? `${positionLabel(state.hero)} 오픈 레인지`
     : `${positionLabel(state.hero)} · ${positionLabel(state.villain)} ${scenario.label}`;
-  els.chartSubtitle.textContent = `${state.stack}BB · 8인 MTT · GTO 혼합 빈도`;
+  els.chartSubtitle.textContent = `${state.stack}BB · 8인 MTT · GTO 혼합 빈도${state.stack === 5 ? ' · 레이즈는 올인으로 표시' : ''}`;
 }
 async function loadCurrent() {
   if (state.scenario === 'multiway') {
@@ -419,8 +430,10 @@ els.scenarioOptions.addEventListener('click', (event) => {
   if (state.scenario === 'multiway') renderMultiwayUnavailable();
   else if (state.data) renderGrid(getActionWeights()); else loadCurrent();
 });
-els.heroSelect.addEventListener('change', () => {
-  state.hero = els.heroSelect.value;
+els.heroPositionOptions.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-position]');
+  if (!button) return;
+  state.hero = button.dataset.position;
   updatePositionControls();
   updateChartHeader();
   if (state.data) renderGrid(getActionWeights()); else loadCurrent();
@@ -435,8 +448,10 @@ els.multiwayOpener.addEventListener('change', () => {
   updateMultiwayControls();
   renderMultiwayUnavailable();
 });
-els.multiwayHero.addEventListener('change', () => {
-  state.multiwayHero = els.multiwayHero.value;
+els.multiwayHeroOptions.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-position]');
+  if (!button) return;
+  state.multiwayHero = button.dataset.position;
   updateMultiwayControls();
   renderMultiwayUnavailable();
 });

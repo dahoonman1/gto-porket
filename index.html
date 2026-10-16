@@ -27,12 +27,6 @@
         <div class="eyebrow">SOLVER FREQUENCIES</div>
         <h2>상황을 고르고, 바로 확인하세요.</h2>
         <p>원본 GTO 혼합 빈도를 사용합니다. 처음 한 번 데이터 저장을 마치면 연결 없이도 조회할 수 있습니다.</p>
-        <div class="source-row">
-          <span class="source-dot"></span>
-          <span id="dataStatus">레인지 데이터가 아직 저장되지 않았습니다.</span>
-        </div>
-        <button id="syncButton" class="primary-button" type="button">모든 스택 데이터 저장</button>
-        <div id="syncProgress" class="sync-progress" aria-live="polite"></div>
       </section>
 
       <section class="panel">
@@ -64,28 +58,26 @@
           <button type="button" data-scenario="multiway" class="scenario-button"><span>06</span><strong>앞선 콜 있음</strong><small>오픈 → 콜 → 내 차례</small></button>
         </div>
         <div id="standardControls">
-        <div class="select-grid">
-          <label class="field">
+          <div class="field position-field">
             <span>내 포지션</span>
-            <select id="heroSelect"></select>
-          </label>
-          <label id="villainField" class="field hidden">
-            <span id="villainLabel">상대 포지션</span>
-            <select id="villainSelect"></select>
-          </label>
-        </div>
-        <div id="spotDescription" class="spot-description"></div>
+            <div id="heroPositionOptions" class="position-options" role="group" aria-label="내 포지션"></div>
+          </div>
+          <div class="select-grid villain-select-grid">
+            <label id="villainField" class="field hidden">
+              <span id="villainLabel">상대 포지션</span>
+              <select id="villainSelect"></select>
+            </label>
+          </div>
+          <div id="spotDescription" class="spot-description"></div>
         </div>
         <div id="multiwayControls" class="multiway-controls hidden">
-          <div class="select-grid">
-            <label class="field">
-              <span>처음 레이즈한 포지션</span>
-              <select id="multiwayOpener"></select>
-            </label>
-            <label class="field">
-              <span>내 포지션 (결정할 자리)</span>
-              <select id="multiwayHero"></select>
-            </label>
+          <label class="field">
+            <span>처음 레이즈한 포지션</span>
+            <select id="multiwayOpener"></select>
+          </label>
+          <div class="field position-field multiway-hero-field">
+            <span>내 포지션 (결정할 자리)</span>
+            <div id="multiwayHeroOptions" class="position-options" role="group" aria-label="멀티웨이 내 포지션"></div>
           </div>
           <div class="caller-picker">
             <div class="caller-picker-heading">
@@ -112,10 +104,12 @@
         <div id="chartMessage" class="chart-message hidden" role="status"></div>
         <div id="rangeGrid" class="range-grid" aria-label="169개 시작 핸드 레인지"></div>
         <div class="legend">
-          <div><i class="swatch raise"></i><span>레이즈 / 3벳 / 4벳</span></div>
+          <div><i class="swatch allin"></i><span>올인</span></div>
+          <div><i class="swatch raise"></i><span>베팅 / 레이즈</span></div>
           <div><i class="swatch call"></i><span>콜</span></div>
           <div><i class="swatch fold"></i><span>폴드</span></div>
         </div>
+        <p class="legend-note">사이즈 참고: 원본 데이터에 베팅 금액이 별도 기록되지 않습니다. 5BB는 레이즈를 올인으로 표시하고, 그 외 스택은 사이즈를 특정할 수 없어 레이즈 빨강으로 표시합니다.</p>
         <div id="actionTotals" class="action-totals"></div>
         <div id="handDetail" class="hand-detail">
           <div class="detail-placeholder">아래 레인지 표에서 핸드를 누르면 액션별 빈도가 표시됩니다.</div>
@@ -126,14 +120,29 @@
         <h2>읽는 법</h2>
         <p><b>색이 섞인 칸</b>은 혼합 전략입니다. 예를 들어 레이즈 60%·콜 40%라면 항상 한 액션만 해야 한다는 뜻이 아닙니다.</p>
         <p><b>스택 깊이</b>는 원본 데이터에 있는 100·40·20·10·5BB만 표시합니다. 선택한 숫자는 해당 스택의 솔버 결과입니다.</p>
-        <p><b>앞선 콜 있음</b> 메뉴에서 UTG 오픈 → CO 콜 → BTN 차례처럼 액션 순서를 설정할 수 있습니다. 단, 현재 무료 데이터에는 해당 멀티웨이 노드가 없으므로 실제 GTO 빈도는 표시하지 않습니다.</p>
+        <p><b>앞선 콜 있음</b>을 누르고 처음 레이즈한 자리와 내 포지션을 고른 뒤, 내 차례 전에 콜한 각 포지션을 누르세요. 예: UTG 레이즈 → CO 콜 → BTN 차례에서는 오프닝 포지션 UTG, 내 포지션 BTN, 콜러 CO를 선택합니다. 다만 원본 데이터에는 이 멀티웨이 경로의 별도 GTO 빈도가 없습니다.</p>
+        <p><b>색상 참고:</b> 올인 진한 빨강, 일반 레이즈 빨강, 콜 초록, 폴드 하늘색으로 표시합니다. 원본 데이터가 베팅 금액/올인 구분을 별도로 제공하지 않는 스팟은 올인과 일반 레이즈를 완전히 구별할 수 없습니다.</p>
         <p class="small-print">학습용 프리플랍 차트입니다. 포커 룸의 실시간 플레이 중 보조 도구 허용 여부를 확인하세요.</p>
+      </section>
+
+      <section class="panel sync-panel">
+        <div class="section-heading">
+          <h2>오프라인 데이터</h2>
+          <span class="subtle">최초 1회 필요</span>
+        </div>
+        <p class="sync-description">처음 한 번만 인터넷으로 모든 스택의 레인지 데이터를 저장하세요. 저장 후에는 연결 없이 조회할 수 있습니다.</p>
+        <div class="source-row">
+          <span class="source-dot"></span>
+          <span id="dataStatus">레인지 데이터가 아직 저장되지 않았습니다.</span>
+        </div>
+        <button id="syncButton" class="primary-button" type="button">모든 스택 데이터 저장</button>
+        <div id="syncProgress" class="sync-progress" aria-live="polite"></div>
       </section>
     </main>
 
     <footer>
       <p>Range data: <a href="https://github.com/jensbaagaard/poker-practice" target="_blank" rel="noreferrer">Poker Practice</a> · MIT License</p>
-      <p id="versionText">GTO Pocket · v0.2 · 로컬 저장 지원</p>
+      <p id="versionText">GTO Pocket · v0.3 · 로컬 저장 지원</p>
     </footer>
   </div>
   <script src="./app.js" defer></script>
