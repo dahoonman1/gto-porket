@@ -1,0 +1,7 @@
+{
+  "routes": 5009,
+  "nodes": 5009,
+  "missing_routes": 0,
+  "source_size_mtime_unchanged": true,
+  "scope": "all nodes reachable through preflop directory; indexed lookups only"
+}

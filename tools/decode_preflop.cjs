@@ -1,8 +1,9 @@
 const fs=require('node:fs'),z=require('node:zlib'),readline=require('node:readline'),path=require('node:path'),crypto=require('node:crypto');
 (async()=>{
-const [input,mappingFile,snapshotFile,out]=process.argv.slice(2);fs.mkdirSync(out,{recursive:true});
+const [input,mappingFile,snapshotFile,out,source]=process.argv.slice(2);fs.mkdirSync(out,{recursive:true});
 const candidates=JSON.parse(fs.readFileSync(mappingFile));if(candidates.length!==1)throw Error('Ambiguous mapping');const mapping=candidates[0].bucket_to_hand;
 const snapshot=JSON.parse(fs.readFileSync(snapshotFile));const manifest={schema:'gto_pocket_preflop_v1',mapping:{status:'inferred_not_source_verified',...candidates[0]},positions:{status:'unverified',labels:null},solve:{players:8,stack_bb:20,bb_ante_bb:1,status:'stopped',iterations:1034384,requested_iterations:5000000,accuracy_profile:'multiway_experimental'},nodes:[]};
+if(source){const req=JSON.parse(fs.readFileSync(path.join(source,'request.json'))),meta=JSON.parse(fs.readFileSync(path.join(source,'library_meta.json')));manifest.solve={players:req.players,stack_bb:req.stack_bb,bb_ante_bb:req.bb_ante_bb,status:meta.status_fields.status,iterations:meta.status_fields.iterations,requested_iterations:req.iterations,accuracy_profile:req.accuracy_profile,preflop_call_policy:req.preflop_call_policy,cold_call_max_players_behind:req.preflop_cold_call_max_players_behind};}
 manifest.excluded=[];let count=0,maxSum=0,maxRoot=0;const ids=new Map();
 for await(const line of readline.createInterface({input:fs.createReadStream(input),crlfDelay:Infinity})){
  const n=JSON.parse(line);try{const actions=JSON.parse(n.legal_actions_json),hands=new Map();

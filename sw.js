@@ -1,6 +1,6 @@
 'use strict';
-const CACHE_NAME = 'gto-pocket-shell-v7';
-const SHELL = ['index.html', 'styles.css', 'fonts/NotoSansKR-VF.ttf', 'app.js', 'history.js', 'multiway.js', 'solver.html', 'solver.js', 'data/manifest.json', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
+const CACHE_NAME = 'gto-pocket-shell-v8';
+const SHELL = ['index.html', 'styles.css', 'fonts/NotoSansKR-VF.ttf', 'app.js', 'history.js', 'multiway.js', 'solver.html', 'solver.js', 'data/manifest.json', 'data/40bb/manifest.json', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
@@ -28,7 +28,7 @@ self.addEventListener('fetch', (event) => {
     try {
       const network = await fetch(request);
       if (network.ok && request.destination !== 'document') {
-        const nodeData = /\/data\/-?\d+\.json$/.test(url.pathname);
+        const nodeData = /\/data\/(?:40bb\/)?-?\d+\.json$/.test(url.pathname);
         const cache = await caches.open(nodeData ? 'gto-pocket-local-strategies-v1' : CACHE_NAME);
         cache.put(request, network.clone());
       }

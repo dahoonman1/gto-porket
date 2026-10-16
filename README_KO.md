@@ -88,3 +88,8 @@ Node 24 이상 필요:
 
 ## 화면 스타일
 첨부 레퍼런스의 레인지 색상: 올인 #7D1F1F / 레이즈 #F03C3C / 콜 #5AB966 / 폴드 #3D7CB8. 화면 배치와 액션 입력 흐름을 유지하면서 검정 배경, 평면 패널, 작은 모서리, 얇은 셀 구분선으로 변경했다. Noto Sans KR 가변 글꼴을 원본 그대로 포함하며 라이선스는 fonts/OFL.txt에 있다. 글꼴은 서비스 워커로 저장되어 오프라인에서도 표시된다.
+
+## v0.6: 40BB 멀티액션
+8-max_Preflop_cEV_2에서 프리플랍 5,009개 노드/844,107행을 추가했다. 앞선 액션 메뉴에서 40BB를 선택해 조회한다. 20BB와 별도 디렉터리(data/40bb) 및 저장 버튼을 사용한다. 추가 콜러 BB only, 프리플랍 공격 제한 3의 실험 데이터이며, 저장 트리에 없는 경로는 표시하지 않는다. 소스 대조가 없는 핸드 추론 매핑/수렴 미확인 상태는 유지한다. 일반 상황 메뉴의 공개 차트는 변경하지 않았다.
+재생 검사: `node tools/test-all-histories.cjs data/40bb`. 전체 출력 검사: `node tools/validate.cjs data/40bb`.
+재추출: `python tools/export_preflop.py SOURCE OUTSIDE_SOURCE/preflop40.jsonl`; `node tools/decode_preflop.cjs INPUT tools/bucket_mapping_candidates.json ROOT_SNAPSHOT_ROWS data/40bb SOURCE`. 재추출 후 위치/핸드 검증과 manifest 검증 상태 갱신이 필요하다. 단순 추출만으로 매핑 검증 상태를 자동 승격하지 않는다.
