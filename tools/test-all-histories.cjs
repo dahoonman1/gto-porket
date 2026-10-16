@@ -1,0 +1,4 @@
+const fs=require('fs'),assert=require('assert/strict'),H=require('../history.js');
+const dir=process.argv[2]||'data',m=JSON.parse(fs.readFileSync(dir+'/manifest.json'));let good=0;const failures=[];
+for(const n of m.nodes){try{const s=H.initial(20,1);for(const token of n.history?n.history.split('.'):[]){if(token==='fold')H.apply(s,'fold');else if(token==='call'||token==='check')H.apply(s,'call');else H.apply(s,token==='allin'?'allin':'raise',token==='allin'?undefined:Number(token.match(/\d+/)[0])/100);}assert.equal((s.pending[0]+3)%8,n.player);assert(Math.abs(s.paid.reduce((a,b)=>a+b,0)+1-n.pot_bb)<1e-6);assert(Math.abs(s.bet-s.paid[s.pending[0]]-n.to_call_bb)<1e-6);good++;}catch(e){if(failures.length<8)failures.push({history:n.history,error:e.message});}}
+console.log({good,total:m.nodes.length,failures});if(good!==m.nodes.length)process.exitCode=1;

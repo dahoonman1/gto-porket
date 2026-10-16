@@ -167,3 +167,12 @@ a { color:#87d9b6; }
 #multiwayControls summary{color:var(--muted);font-size:12px;cursor:pointer;padding:8px 0}
 .history-error{font-size:12px;color:#ffaaaa;margin:6px 0 0}
 .history-error:empty{display:none}
+#historyPlayers .position-button{min-height:48px}
+#historyPlayers .position-button small{display:block;font-size:10px;color:var(--muted);margin-top:4px;font-weight:400}
+#historyPlayers .position-button:disabled{opacity:.4;cursor:default}
+#actingPosition{font-size:13px;color:var(--green)}
+#historySizeField summary{font-size:11px;padding:5px 0}
+#historySizeField input{width:100%;min-width:0;background:#0b1524;color:var(--text);border:1px solid #31435a;border-radius:8px;padding:8px;font:inherit}
+.history-secondary button{font-size:11px;padding:8px}
+.local-save{width:100%;padding:11px;margin-top:10px;border-radius:10px;border:1px solid #3c9a7b;background:#1b3b38;color:var(--text);font:inherit;font-size:12px;cursor:pointer}
+.local-save:disabled{opacity:.5;cursor:wait}

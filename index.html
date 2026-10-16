@@ -75,20 +75,22 @@
             <div id="multiwayHeroOptions" class="position-options" role="group" aria-label="멀티웨이 내 포지션"></div>
           </div>
           <div id="multiwaySequence" class="sequence-preview" aria-live="polite"></div>
-          <div class="history-toolbar">
-            <button id="addAction" type="button">＋ 액션 추가</button>
+          <div class="field position-field"><span>앞서 행동한 플레이어를 누르세요</span>
+            <div id="historyPlayers" class="position-options" role="group" aria-label="앞서 행동한 7명"></div>
+          </div>
+          <div id="actionEditor" class="hidden">
+            <strong id="actingPosition"></strong>
+            <div id="historyActions" class="history-toolbar" role="group" aria-label="추가할 행동"></div>
+            <details id="historySizeField"><summary>레이즈 사이즈 변경</summary>
+              <label class="field"><span>총액 (BB)</span><input id="historySize" type="number" min="0" step="0.25" inputmode="decimal"></label>
+            </details>
+          </div>
+          <div class="history-toolbar history-secondary">
+            <button id="ownAction" type="button">내 이전 행동 추가</button>
             <button id="undoAction" type="button">되돌리기</button>
             <button id="resetActions" type="button">초기화</button>
           </div>
-          <div id="actionEditor" class="hidden">
-            <div class="history-fields">
-              <label class="field"><span>행동한 포지션</span><select id="historyPlayer"></select></label>
-              <label id="historySizeField" class="field"><span>레이즈 총액 (BB)</span><input id="historySize" type="number" min="0" step="0.25" inputmode="decimal"></label>
-            </div>
-            <div id="historyActions" class="history-toolbar" role="group" aria-label="추가할 행동"></div>
-            <button id="cancelAction" class="history-cancel" type="button">닫기</button>
-          </div>
-          <p class="field-help">선택한 포지션보다 앞선 미입력 차례는 폴드로 처리합니다. 이력의 행동을 누르면 그 지점부터 다시 입력합니다.</p>
+          <p class="field-help">입력하지 않은 앞선 차례는 폴드로 처리합니다. 이력을 누르면 수정할 수 있습니다.</p>
           <details><summary>전체 이력 · 생략된 폴드 확인</summary><div id="fullHistory" class="full-history"></div></details>
           <p id="historyError" class="history-error" role="alert"></p>
         </div>
@@ -118,15 +120,6 @@
         </div>
       </section>
 
-      <section class="panel notes-panel">
-        <h2>읽는 법</h2>
-        <p><b>색이 섞인 칸</b>은 혼합 전략입니다. 예를 들어 레이즈 60%·콜 40%라면 항상 한 액션만 해야 한다는 뜻이 아닙니다.</p>
-        <p><b>스택 깊이</b>는 원본 데이터에 있는 100·40·20·10·5BB만 표시합니다. 선택한 숫자는 해당 스택의 솔버 결과입니다.</p>
-        <p><b>앞선 액션:</b> 내 포지션을 고르고 액션을 순서대로 추가하세요. 3벳 후 콜이나 내 차례가 다시 돌아오는 상황도 설정할 수 있습니다. 미입력 차례는 폴드로 처리하며 전체 이력에서 확인할 수 있습니다.</p>
-        <p><b>색상 참고:</b> 올인 진한 빨강, 일반 레이즈 빨강, 콜 초록, 폴드 하늘색으로 표시합니다. 원본 데이터가 베팅 금액/올인 구분을 별도로 제공하지 않는 스팟은 올인과 일반 레이즈를 완전히 구별할 수 없습니다.</p>
-        <p class="small-print">학습용 프리플랍 차트입니다. 포커 룸의 실시간 플레이 중 보조 도구 허용 여부를 확인하세요.</p>
-      </section>
-
       <section class="panel sync-panel">
         <div class="section-heading">
           <h2>오프라인 데이터</h2>
@@ -139,12 +132,14 @@
         </div>
         <button id="syncButton" class="primary-button" type="button">모든 스택 데이터 저장</button>
         <div id="syncProgress" class="sync-progress" aria-live="polite"></div>
+        <button id="saveLocal20" class="local-save" type="button">20BB 멀티액션 데이터 저장 · 약 110MB</button>
+        <div id="saveLocal20Status" class="sync-progress" aria-live="polite"></div>
       </section>
     </main>
 
     <footer>
       <p>Range data: <a href="https://github.com/jensbaagaard/poker-practice" target="_blank" rel="noreferrer">Poker Practice</a> · MIT License</p>
-      <p id="versionText">GTO Pocket · v0.4 · 액션 이력 지원</p>
+      <p id="versionText">GTO Pocket · v0.5 · 20BB 멀티액션</p>
     </footer>
   </div>
   <script src="./history.js" defer></script>
