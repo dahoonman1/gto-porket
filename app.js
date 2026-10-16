@@ -36,7 +36,7 @@ const SCENARIOS = {
     description: '내가 4벳했고 상대가 5벳 올인했을 때의 콜 / 폴드 빈도입니다.'
   },
   multiway: {
-    label: '앞선 콜 있음',
+    label: '앞선 액션',
     description: '오픈 이후 한 명 이상의 플레이어가 콜한 상황을 구성합니다. 현재 원본 데이터에 이 상황의 멀티웨이 GTO 차트가 없어 빈도를 표시하지 않습니다.'
   }
 };
@@ -164,53 +164,6 @@ function renderPositionButtons(container, options, selected) {
   ).join('');
 }
 
-function updateMultiwayControls() {
-  const openerOptions = POSITIONS.filter((p) => p !== 'BB');
-  els.multiwayOpener.innerHTML = openerOptions.map((p) => `<option value="${p}">${positionLabel(p)}</option>`).join('');
-  els.multiwayOpener.value = state.multiwayOpener;
-
-  const openerIndex = POSITIONS.indexOf(state.multiwayOpener);
-  const possibleHeroes = POSITIONS.slice(openerIndex + 1);
-  if (!possibleHeroes.includes(state.multiwayHero)) state.multiwayHero = possibleHeroes[possibleHeroes.length - 1] || 'BB';
-  renderPositionButtons(els.multiwayHeroOptions, possibleHeroes, state.multiwayHero);
-
-  const heroIndex = POSITIONS.indexOf(state.multiwayHero);
-  const possibleCallers = POSITIONS.slice(openerIndex + 1, heroIndex);
-  for (const caller of [...state.multiwayCallers]) {
-    if (!possibleCallers.includes(caller)) state.multiwayCallers.delete(caller);
-  }
-  els.callerOptions.innerHTML = possibleCallers.length
-    ? possibleCallers.map((p) => `<label class="caller-option"><input type="checkbox" value="${p}" ${state.multiwayCallers.has(p) ? 'checked' : ''}><span>${positionLabel(p)} 콜</span></label>`).join('')
-    : '<div class="no-callers">선택한 레이즈 포지션과 내 포지션 사이에 콜할 플레이어가 없습니다.</div>';
-
-  const calls = possibleCallers.filter((p) => state.multiwayCallers.has(p));
-  const path = [`<b>${positionLabel(state.multiwayOpener)} 레이즈</b>`, ...calls.map((p) => `<b>${positionLabel(p)} 콜</b>`), `<b>${positionLabel(state.multiwayHero)} 의사결정</b>`];
-  els.multiwaySequence.innerHTML = `<span class="sequence-label">설정한 프리플랍 액션</span><div>${path.join(' <span class="sequence-arrow">→</span> ')}</div>`;
-}
-
-function renderMultiwayUnavailable() {
-  const opener = state.multiwayOpener;
-  const hero = state.multiwayHero;
-  const openerIndex = POSITIONS.indexOf(opener);
-  const heroIndex = POSITIONS.indexOf(hero);
-  const callers = POSITIONS.slice(openerIndex + 1, heroIndex).filter((p) => state.multiwayCallers.has(p));
-  updateChartHeader();
-  els.rangeGrid.innerHTML = '';
-  els.rangeGrid.classList.add('hidden');
-  els.actionTotals.innerHTML = '';
-  els.actionTotals.classList.add('hidden');
-  els.chartMessage.classList.remove('hidden');
-  els.availabilityBadge.textContent = 'GTO 데이터 없음';
-  if (heroIndex <= openerIndex) {
-    els.chartMessage.textContent = '내 포지션은 레이즈한 플레이어보다 뒤에 있어야 합니다. 포지션을 다시 선택해 주세요.';
-  } else if (callers.length === 0) {
-    els.chartMessage.textContent = '내 차례 전에 콜한 플레이어를 한 명 이상 선택해 주세요. 콜이 없다면 일반적인 오픈 대응 메뉴를 사용하세요.';
-  } else {
-    els.chartMessage.textContent = `${positionLabel(opener)} 레이즈 → ${callers.map(positionLabel).join(' 콜 → ')} 콜 → ${positionLabel(hero)} 차례로 설정되었습니다. 현재 공개 데이터에는 앞선 콜까지 조건으로 포함한 이 멀티웨이 액션 경로의 GTO 빈도가 없어 차트는 표시하지 않습니다. 이 설정은 복기 시 액션 순서를 정리하기 위한 것입니다.`;
-  }
-  els.handDetail.innerHTML = '<div class="detail-placeholder">멀티웨이 GTO 데이터가 연결되면 여기에서 핸드별 레이즈·콜·폴드 빈도를 확인할 수 있습니다.</div>';
-}
-
 function keysForCurrentSpot() {
   const shape = SCENARIOS[state.scenario];
   const h = sourcePos(state.hero);
@@ -279,6 +232,8 @@ function cellGradient(w) {
   return `linear-gradient(90deg, #701820 0 ${allin}%, #e53e43 ${allin}% ${raiseEnd}%, #32a852 ${raiseEnd}% ${callEnd}%, #85ccf5 ${callEnd}% 100%)`;
 }
 function renderGrid(result) {
+  els.handDetail.classList.remove('hidden');
+  document.querySelector('.legend-note').classList.remove('hidden');
   els.rangeGrid.innerHTML = '';
   els.actionTotals.innerHTML = '';
   if (!result || result.unavailable) {
@@ -345,8 +300,11 @@ function updateChartHeader() {
     : `${positionLabel(state.hero)} · ${positionLabel(state.villain)} ${scenario.label}`;
   els.chartSubtitle.textContent = `${state.stack}BB · 8인 MTT · GTO 혼합 빈도${state.stack === 5 ? ' · 레이즈는 올인으로 표시' : ''}`;
 }
+let currentLoad = 0;
 async function loadCurrent() {
+  const request = ++currentLoad;
   if (state.scenario === 'multiway') {
+    state.loading = false;
     renderMultiwayUnavailable();
     await refreshDataStatus();
     return;
@@ -354,14 +312,20 @@ async function loadCurrent() {
   state.loading = true;
   updateChartHeader();
   els.availabilityBadge.textContent = '불러오는 중';
-  els.rangeGrid.classList.remove('hidden');
-  els.chartMessage.classList.add('hidden');
+  els.rangeGrid.classList.add('hidden');
+  els.actionTotals.classList.add('hidden');
+  els.handDetail.replaceChildren();
+  els.chartMessage.classList.remove('hidden');
+  els.chartMessage.textContent = '선택한 스택 데이터를 불러오는 중입니다.';
   try {
-    state.data = await loadSet(state.stack);
+    const loaded = await loadSet(state.stack);
+    if (request !== currentLoad || state.scenario === 'multiway') return;
+    state.data = loaded;
     const result = getActionWeights();
     renderGrid(result);
     await refreshDataStatus();
   } catch (err) {
+    if (request !== currentLoad || state.scenario === 'multiway') return;
     state.data = null;
     els.rangeGrid.classList.add('hidden');
     els.actionTotals.classList.add('hidden');
@@ -369,7 +333,7 @@ async function loadCurrent() {
     els.chartMessage.textContent = err.message || '데이터를 불러오지 못했습니다.';
     els.availabilityBadge.textContent = '데이터 없음';
     els.handDetail.innerHTML = '<div class="detail-placeholder">데이터를 저장한 다음 다시 시도해 주세요.</div>';
-  } finally { state.loading = false; }
+  } finally { if (request === currentLoad) state.loading = false; }
 }
 async function refreshDataStatus() {
   try {
@@ -418,6 +382,8 @@ els.stackOptions.addEventListener('click', (event) => {
   const button = event.target.closest('[data-stack]');
   if (!button) return;
   state.stack = Number(button.dataset.stack);
+  state.data = null;
+  if (window.resetHistoryForStack) window.resetHistoryForStack();
   setStackHint();
   loadCurrent();
 });
@@ -443,26 +409,6 @@ els.villainSelect.addEventListener('change', () => {
   updateChartHeader();
   if (state.data) renderGrid(getActionWeights()); else loadCurrent();
 });
-els.multiwayOpener.addEventListener('change', () => {
-  state.multiwayOpener = els.multiwayOpener.value;
-  updateMultiwayControls();
-  renderMultiwayUnavailable();
-});
-els.multiwayHeroOptions.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-position]');
-  if (!button) return;
-  state.multiwayHero = button.dataset.position;
-  updateMultiwayControls();
-  renderMultiwayUnavailable();
-});
-els.callerOptions.addEventListener('change', (event) => {
-  const input = event.target.closest('input[type="checkbox"]');
-  if (!input) return;
-  if (input.checked) state.multiwayCallers.add(input.value);
-  else state.multiwayCallers.delete(input.value);
-  updateMultiwayControls();
-  renderMultiwayUnavailable();
-});
 els.syncButton.addEventListener('click', syncAllData);
 window.addEventListener('online', updateConnectionStatus);
 window.addEventListener('offline', updateConnectionStatus);
@@ -477,4 +423,5 @@ async function init() {
   }
   await loadCurrent();
 }
-init();
+// init runs after the integrated history editor has been loaded.
+window.addEventListener('DOMContentLoaded', init);

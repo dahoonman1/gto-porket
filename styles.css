@@ -153,3 +153,17 @@ a { color:#87d9b6; }
 .sequence-label { display:block; color:#87cbb5; font-size:10px; margin-bottom:4px; font-weight:800; letter-spacing:.04em; }
 .sequence-arrow { color:#78e0b4; padding:0 3px; }
 .multiway-warning { margin-top:10px; padding:11px 12px; border:1px solid #6c5630; border-radius:10px; background:#302816; color:#ffdda0; font-size:11px; line-height:1.55; }
+/* Compact action history extends the v3 controls. */
+.history-toolbar{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+.history-toolbar button,.history-cancel,.sequence-preview button{border:1px solid var(--border);border-radius:9px;background:#0b1524;color:var(--text);padding:10px 12px;font-size:12px;min-height:42px}
+.history-toolbar button:disabled{opacity:.4;cursor:default}
+.history-toolbar button:first-child{border-color:#3c9a7b}
+.history-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.history-fields input{width:100%;min-width:0;background:#0b1524;color:var(--text);border:1px solid #31435a;border-radius:10px;padding:12px 10px;font:inherit}
+#actionEditor{background:#101c2c;border:1px solid var(--border);border-radius:12px;padding:10px}
+.sequence-preview button{margin:3px;min-height:36px;padding:7px 9px;background:#1b3b38;border-color:#3c9a7b}
+.decision-chip{display:inline-block;padding:8px;color:var(--green);font-size:12px;font-weight:700}
+.full-history{font-size:12px;line-height:1.8;color:var(--muted);padding:8px 0}
+#multiwayControls summary{color:var(--muted);font-size:12px;cursor:pointer;padding:8px 0}
+.history-error{font-size:12px;color:#ffaaaa;margin:6px 0 0}
+.history-error:empty{display:none}

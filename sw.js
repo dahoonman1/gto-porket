@@ -1,6 +1,6 @@
 'use strict';
-const CACHE_NAME = 'gto-pocket-shell-v4';
-const SHELL = ['index.html', 'styles.css', 'app.js', 'solver.html', 'solver.js', 'data/manifest.json', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
+const CACHE_NAME = 'gto-pocket-shell-v5';
+const SHELL = ['index.html', 'styles.css', 'app.js', 'history.js', 'multiway.js', 'solver.html', 'solver.js', 'data/manifest.json', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
