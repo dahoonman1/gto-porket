@@ -229,7 +229,7 @@ function cellGradient(w) {
   const allin = (w.allin * 100).toFixed(2);
   const raiseEnd = ((w.allin + w.raise) * 100).toFixed(2);
   const callEnd = ((w.allin + w.raise + w.call) * 100).toFixed(2);
-  return `linear-gradient(90deg, #701820 0 ${allin}%, #e53e43 ${allin}% ${raiseEnd}%, #32a852 ${raiseEnd}% ${callEnd}%, #85ccf5 ${callEnd}% 100%)`;
+  return `linear-gradient(90deg, var(--allin) 0 ${allin}%, var(--raise) ${allin}% ${raiseEnd}%, var(--call) ${raiseEnd}% ${callEnd}%, var(--fold) ${callEnd}% 100%)`;
 }
 function renderGrid(result) {
   els.handDetail.classList.remove('hidden');
@@ -374,8 +374,8 @@ async function syncAllData() {
 function updateConnectionStatus() {
   const online = navigator.onLine;
   els.connectionBadge.textContent = online ? '온라인' : '오프라인';
-  els.connectionBadge.style.color = online ? '#8be4bb' : '#f1cb7a';
-  els.connectionBadge.style.borderColor = online ? '#326d58' : '#68552f';
+  els.connectionBadge.style.color = online ? '#a3cba7' : '#c7b47d';
+  els.connectionBadge.style.borderColor = online ? '#38483b' : '#49443a';
 }
 
 els.stackOptions.addEventListener('click', (event) => {
