@@ -197,3 +197,12 @@ button:not(:disabled):hover{filter:brightness(1.12)}
 .swatch{border:0!important;border-radius:2px}
 .eyebrow{font-weight:600;letter-spacing:.12em}
 @media(max-width:360px){.hand-cell{padding:2px 1px}}
+
+.reminder-panel{grid-column:1 / -1}
+.reminder-list{margin:14px 0 0;padding-left:25px}
+.reminder-list li{padding:10px 0 10px 5px;border-bottom:1px solid var(--border)}
+.reminder-list li:first-child{padding-top:0}
+.reminder-list li:last-child{border-bottom:0;padding-bottom:0}
+.reminder-list li::marker{color:var(--muted);font-size:12px}
+.reminder-list strong{font-size:13px;font-weight:600;line-height:1.6}
+.reminder-list p{font-size:12px;color:var(--muted);margin:3px 0 0;line-height:1.6}
